@@ -1,8 +1,12 @@
-/* Shared layout and keyboard focus */
+/* Shared layout */
 html {
     position: relative;
     min-height: 100%;
     font-size: 14px;
+}
+
+body {
+    margin-bottom: 60px;
 }
 
 @media (min-width: 768px) {
@@ -11,35 +15,28 @@ html {
     }
 }
 
-body {
-    margin-bottom: 60px;
-}
-
 .btn:focus,
 .btn:active:focus,
 .form-control:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-.eyebrow {
-    margin: 0 0 12px;
-    color: var(--game-gold);
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 2px;
+    box-shadow: 0 0 0 .1rem white, 0 0 0 .25rem #258cfb;
 }
 
 /* Game setup */
 .game-dashboard {
-    --game-bg: #0b1120;
-    --game-text: #edf2fa;
-    --game-gold: #e6b85c;
     min-height: 100vh;
     margin: -16px;
     padding-bottom: 24px;
-    background: var(--game-bg);
-    color: var(--game-text);
+    background: #0b1120;
+    color: #edf2fa;
     font-family: "Segoe UI", sans-serif;
+}
+
+.eyebrow {
+    margin: 0 0 12px;
+    color: #e6b85c;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
 }
 
 .setup-container {
@@ -51,12 +48,17 @@ body {
 .back-link {
     display: inline-block;
     margin-bottom: 38px;
-    color: #91a1b8;
-    text-decoration: none;
     font-size: 13px;
+    text-decoration: none;
 }
 
-.setup-heading {
+.back-link,
+.setup-heading > p:last-child {
+    color: #91a1b8;
+}
+
+.setup-heading,
+.setup-card-header {
     margin-bottom: 30px;
 }
 
@@ -72,7 +74,6 @@ body {
 
     .setup-heading > p:last-child {
         max-width: 590px;
-        color: #91a1b8;
         font-size: 14px;
         line-height: 1.8;
     }
@@ -84,13 +85,237 @@ body {
     border-radius: 16px;
 }
 
-.setup-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 30px;
+/* Campaign map */
+.landing {
+    min-height: 90vh;
+    padding: 22px;
+    color: #edf4ff;
+    background: #091725;
+    border-radius: 16px;
 }
 
-    .setup-card-header h2 {
+.setup-card-header,
+.landing-header,
+.territory-heading {
+    display: flex;
+    justify-content: space-between;
+}
+
+.setup-card-header,
+.landing-header {
+    align-items: center;
+    gap: 15px;
+}
+
+.landing-header {
+    margin-bottom: 22px;
+}
+
+    .landing-header h1 {
+        margin: 0 0 8px;
+    }
+
+    .landing-header p,
+    .setup-card-header h2,
+    .territory-heading h2 {
         margin: 0;
+    }
+
+    .landing-header p,
+    .territory-heading span,
+    .map-description,
+    .campaign-dialog-card p {
+        color: #a9bbd0;
+    }
+
+.territory-card,
+.campaign-dialog-card {
+    background: #10253a;
+}
+
+.territory-card {
+    padding: 18px;
+    border: 1px solid #29445d;
+    border-radius: 14px;
+}
+
+.territory-heading {
+    margin-bottom: 18px;
+}
+
+    .territory-heading h2 {
+        font-size: 18px;
+    }
+
+.country-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px 12px;
+}
+
+.country {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    aspect-ratio: 1.12;
+}
+
+    .country svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .country polygon {
+        stroke: #091725;
+        stroke-width: 5;
+        stroke-linejoin: round;
+    }
+
+    .country.starting polygon {
+        stroke: white;
+        stroke-width: 7;
+    }
+
+.country-info {
+    position: relative;
+    padding: 4px;
+    color: white;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+    .country-info strong,
+    .country-info span,
+    .country-info small {
+        display: block;
+    }
+
+    .country-info strong {
+        font-size: clamp(11px, 1.2vw, 15px);
+    }
+
+    .country-info span,
+    .country-info small {
+        margin-top: 8px;
+    }
+
+    .country-info span {
+        font-size: 12px;
+    }
+
+    .country-info small {
+        font-size: 9px;
+    }
+
+.map-description {
+    margin-top: 20px;
+    font-size: 13px;
+}
+
+.map-description,
+.campaign-dialog-card p {
+    line-height: 1.6;
+}
+
+/* Country selection and account popups */
+.start-button {
+    margin-top: 16px;
+    padding: 12px 22px;
+    color: white;
+    background: #3478f6;
+    border: 0;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.start-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+    .start-modal.hidden {
+        display: none;
+    }
+
+.start-modal,
+.account-dialog::backdrop {
+    background: rgba(3, 10, 20, .82);
+    backdrop-filter: blur(5px);
+}
+
+.campaign-dialog-card {
+    width: 100%;
+    max-width: 430px;
+    padding: 28px;
+    color: #edf4ff;
+    border: 1px solid #365674;
+    border-radius: 16px;
+    box-shadow: 0 20px 70px #0008;
+}
+
+    .campaign-dialog-card label {
+        display: block;
+        margin: 18px 0 8px;
+        font-weight: bold;
+    }
+
+    .campaign-dialog-card select,
+    .campaign-dialog-card .account-input {
+        width: 100%;
+        padding: 12px;
+        color: white;
+        background: #091725;
+        border: 1px solid #456784;
+        border-radius: 8px;
+    }
+
+    .campaign-dialog-card .start-button {
+        width: 100%;
+    }
+
+.account-dialog {
+    width: calc(100% - 36px);
+    max-height: calc(100% - 36px);
+    overflow: auto;
+}
+
+    .account-dialog a {
+        color: #b8d7ff;
+    }
+
+.validation-message {
+    color: #ffaaaa;
+    font-size: 13px;
+}
+
+@media (max-width: 700px) {
+    .landing {
+        padding: 12px;
+    }
+
+    .country-grid {
+        gap: 12px 5px;
+    }
+
+    .country-info small {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .country-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .country {
+        min-height: 120px;
+    }
+}

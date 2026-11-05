@@ -1,0 +1,66 @@
+@model bool
+@{
+    var countries = new[]
+    {
+        new { Name = "Italy", Armies = 5, Color = "#f2b72f" },
+        new { Name = "India", Armies = 9, Color = "#d84a9b" },
+        new { Name = "Argentina", Armies = 4, Color = "#18a878" },
+        new { Name = "Canada", Armies = 4, Color = "#a87852" },
+        new { Name = "Japan", Armies = 7, Color = "#e77b32" },
+        new { Name = "Australia", Armies = 4, Color = "#13a5b5" },
+        new { Name = "United States", Armies = 9, Color = "#3478f6" },
+        new { Name = "Indonesia", Armies = 9, Color = "#9560db" },
+        new { Name = "Mexico", Armies = 8, Color = "#e05260" },
+        new { Name = "Germany", Armies = 6, Color = "#8494aa" }
+    };
+}
+
+<section class="landing">
+    <header class="landing-header">
+        <div>
+            <h1>Geopolitics Game</h1>
+            <p>Choose your nation. Build your army. Conquer the world.</p>
+        </div>
+
+        <span>10 territories</span>
+    </header>
+
+    <section class="territory-card">
+        <div class="territory-heading">
+            <h2>Territory map</h2>
+            <span>10 territories</span>
+        </div>
+
+        <div class="country-grid">
+            @for (int i = 0; i < countries.Length; i++)
+            {
+                var country = countries[i];
+
+                <div class="country @(i == 0 ? "starting" : "")">
+                    <svg viewBox="0 0 180 158" aria-hidden="true">
+                        <polygon points="18,8 142,0 180,35 170,125 120,158 30,145 0,80"
+                                 fill="@country.Color" />
+                    </svg>
+
+                    <div class="country-info">
+                        <strong>@country.Name</strong>
+                        <span>@country.Armies soldiers</span>
+                        <small>@(i == 0 ? "YOUR NATION" : "TERRITORY")</small>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <p class="map-description">
+            Click Start Game to begin your campaign. Your actual game
+            will load with the interactive map and your selected country.
+        </p>
+
+        @if (Model)
+        {
+            <button type="button" class="start-button" id="openStartModal">
+                Start Game
+            </button>
+        }
+    </section>
+</section>

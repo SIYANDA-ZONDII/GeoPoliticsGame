@@ -8,27 +8,30 @@
         : "current-password";
 }
 
-<div class="col-md-6 col-lg-4">
-    <h1>@ViewData["Title"]</h1>
+<partial name="_CampaignLanding" model="@(false)" />
+
+<dialog id="accountDialog" class="campaign-dialog-card account-dialog" aria-labelledby="accountTitle">
+    <h2 id="accountTitle">@ViewData["Title"]</h2>
+    <p>@(Model.Register ? "Create an account to begin your campaign." : "Sign in to begin your campaign.")</p>
 
     <form method="post">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div asp-validation-summary="ModelOnly" class="validation-message"></div>
         <input type="hidden" asp-for="Register" />
 
         <div class="mb-3">
             <label asp-for="Username" class="form-label"></label>
-            <input asp-for="Username" class="form-control" autocomplete="username" />
-            <span asp-validation-for="Username" class="text-danger"></span>
+            <input asp-for="Username" class="account-input" autocomplete="username" autofocus />
+            <span asp-validation-for="Username" class="validation-message"></span>
         </div>
 
         <div class="mb-3">
             <label asp-for="Password" class="form-label"></label>
-            <input asp-for="Password" type="password" class="form-control"
+            <input asp-for="Password" type="password" class="account-input"
                    autocomplete="@passwordAutocomplete" />
-            <span asp-validation-for="Password" class="text-danger"></span>
+            <span asp-validation-for="Password" class="validation-message"></span>
         </div>
 
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="start-button">
             @ViewData["Title"]
         </button>
     </form>
@@ -37,4 +40,13 @@
        class="d-inline-block mt-3">
         @(Model.Register ? "Already registered? Sign in" : "Create an account")
     </a>
-</div>
+</dialog>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const accountDialog = document.getElementById("accountDialog");
+        accountDialog.addEventListener("cancel", event => event.preventDefault());
+        accountDialog.showModal();
+    </script>
+}

@@ -30,13 +30,20 @@ public class IndexModel : PageModel
 
     public List<SelectListItem> CountryOptions { get; private set; } = new();
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return RedirectToPage("/Account");
+
         LoadCountries();
+        return Page();
     }
 
     public async Task<IActionResult> OnPostStartGameAsync()
     {
+        if (User.Identity?.IsAuthenticated != true)
+            return RedirectToPage("/Account");
+
         LoadCountries();
 
         if (!ModelState.IsValid)
@@ -44,16 +51,11 @@ public class IndexModel : PageModel
 
         try
         {
-            // Temporary user ID, matching the existing setup page.
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToPage("/Account", new { register = true });
-            }
-            string temporaryUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
+            string userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value;
 
             GameSession game = _gameService.CreateNewGame(
                 SelectedCountry,
-                temporaryUserId);
+                userId);
 
             await _mongoService.SaveGameAsync(game);
 
