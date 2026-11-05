@@ -1,0 +1,285 @@
+﻿@page "/board"
+@{
+    ViewData["Title"] = "Geopolitics Game";
+}
+
+<style>
+    .board-page {
+        background: #0b1728;
+        color: #edf4ff;
+        padding: 24px;
+        min-height: 90vh;
+        font-family: Arial, sans-serif;
+    }
+
+    .board-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 250px;
+        gap: 20px;
+    }
+
+    .territory-board {
+        background: #10233b;
+        border: 1px solid #294765;
+        border-radius: 14px;
+        padding: 12px;
+    }
+
+    .territory {
+        stroke: #0b1728;
+        stroke-width: 4;
+        cursor: pointer;
+        transition: filter .15s, stroke-width .15s;
+    }
+
+    .territory:hover {
+        filter: brightness(1.3);
+    }
+
+    .territory.selected {
+        stroke: #ffffff;
+        stroke-width: 7;
+    }
+
+    .territory-label {
+        fill: white;
+        font-size: 15px;
+        font-weight: bold;
+        text-anchor: middle;
+        pointer-events: none;
+    }
+
+    .territory-count {
+        fill: white;
+        font-size: 13px;
+        text-anchor: middle;
+        pointer-events: none;
+    }
+
+    .info-panel {
+        background: #10233b;
+        border: 1px solid #294765;
+        border-radius: 14px;
+        padding: 20px;
+    }
+
+    .game-button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 12px;
+        border: 0;
+        border-radius: 8px;
+        background: #1677f2;
+        color: white;
+        cursor: pointer;
+    }
+
+    #board-message {
+        white-space: pre-line;
+        margin-top: 16px;
+        color: #b9cbe1;
+    }
+
+    @@media (max-width: 800px) {
+        .board-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="board-page">
+    <h1>Geopolitics Game</h1>
+    <p>Select a territory to inspect it.</p>
+
+    <div class="board-layout">
+        <div class="territory-board">
+            <svg viewBox="0 0 800 520"
+                 style="width:100%;height:auto"
+                 role="group"
+                 aria-label="Game board">
+
+                <g class="territory"
+                   data-id="south-africa"
+                   data-name="South Africa"
+                   data-owner="You"
+                   data-soldiers="5">
+                    <path fill="#1677f2"
+                          d="M35 55 L145 30 L180 80 L155 140 L95 160 L40 120 Z" />
+                    <text class="territory-label" x="105" y="91">South Africa</text>
+                    <text class="territory-count" x="105" y="112">5 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="india"
+                   data-name="India"
+                   data-owner="NPC 1"
+                   data-soldiers="6">
+                    <path fill="#dc4545"
+                          d="M210 35 L300 48 L325 95 L295 145 L240 132 L190 90 Z" />
+                    <text class="territory-label" x="258" y="84">India</text>
+                    <text class="territory-count" x="258" y="105">6 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="brazil"
+                   data-name="Brazil"
+                   data-owner="NPC 2"
+                   data-soldiers="4">
+                    <path fill="#16a765"
+                          d="M365 30 L455 45 L475 95 L440 145 L380 130 L345 78 Z" />
+                    <text class="territory-label" x="410" y="84">Brazil</text>
+                    <text class="territory-count" x="410" y="105">4 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="japan"
+                   data-name="Japan"
+                   data-owner="NPC 3"
+                   data-soldiers="3">
+                    <path fill="#d9a514"
+                          d="M525 40 L590 30 L630 75 L610 130 L555 145 L515 95 Z" />
+                    <text class="territory-label" x="573" y="84">Japan</text>
+                    <text class="territory-count" x="573" y="105">3 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="germany"
+                   data-name="Germany"
+                   data-owner="NPC 4"
+                   data-soldiers="4">
+                    <path fill="#944de0"
+                          d="M660 40 L755 55 L775 105 L735 150 L675 130 L645 85 Z" />
+                    <text class="territory-label" x="711" y="90">Germany</text>
+                    <text class="territory-count" x="711" y="111">4 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="canada"
+                   data-name="Canada"
+                   data-owner="NPC 5"
+                   data-soldiers="5">
+                    <path fill="#e87523"
+                          d="M40 205 L105 180 L160 210 L170 275 L130 310 L60 285 L25 245 Z" />
+                    <text class="territory-label" x="99" y="240">Canada</text>
+                    <text class="territory-count" x="99" y="261">5 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="australia"
+                   data-name="Australia"
+                   data-owner="NPC 6"
+                   data-soldiers="3">
+                    <path fill="#e34c9a"
+                          d="M215 210 L275 185 L330 220 L320 275 L270 305 L220 280 L195 240 Z" />
+                    <text class="territory-label" x="263" y="240">Australia</text>
+                    <text class="territory-count" x="263" y="261">3 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="egypt"
+                   data-name="Egypt"
+                   data-owner="NPC 7"
+                   data-soldiers="2">
+                    <path fill="#12aab9"
+                          d="M370 195 L435 185 L470 225 L455 280 L395 295 L355 245 Z" />
+                    <text class="territory-label" x="414" y="233">Egypt</text>
+                    <text class="territory-count" x="414" y="254">2 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="france"
+                   data-name="France"
+                   data-owner="NPC 8"
+                   data-soldiers="4">
+                    <path fill="#8795a8"
+                          d="M515 205 L585 185 L630 220 L620 275 L560 305 L510 265 L495 230 Z" />
+                    <text class="territory-label" x="562" y="240">France</text>
+                    <text class="territory-count" x="562" y="261">4 soldiers</text>
+                </g>
+
+                <g class="territory"
+                   data-id="china"
+                   data-name="China"
+                   data-owner="NPC 9"
+                   data-soldiers="7">
+                    <path fill="#9b704f"
+                          d="M660 210 L725 185 L775 220 L760 280 L705 305 L655 275 L640 240 Z" />
+                    <text class="territory-label" x="709" y="240">China</text>
+                    <text class="territory-count" x="709" y="261">7 soldiers</text>
+                </g>
+            </svg>
+        </div>
+
+        <aside class="info-panel">
+            <h2 id="country-name">Select a country</h2>
+            <p id="country-owner">Owner: —</p>
+            <p id="country-soldiers">Soldiers: —</p>
+
+            <button class="game-button" id="select-btn">
+                Select territory
+            </button>
+
+            <button class="game-button" id="attack-btn">
+                Attack territory
+            </button>
+
+            <button class="game-button" id="skip-btn">
+                Skip turn
+            </button>
+
+            <p id="board-message">Waiting for your move.</p>
+        </aside>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const territories = document.querySelectorAll(".territory");
+        const nameLabel = document.getElementById("country-name");
+        const ownerLabel = document.getElementById("country-owner");
+        const soldiersLabel = document.getElementById("country-soldiers");
+        const message = document.getElementById("board-message");
+
+        let selected = null;
+
+        territories.forEach(territory => {
+            territory.addEventListener("click", () => {
+                if (selected) {
+                    selected.classList.remove("selected");
+                }
+
+                selected = territory;
+                selected.classList.add("selected");
+
+                nameLabel.textContent = territory.dataset.name;
+                ownerLabel.textContent =
+                    "Owner: " + territory.dataset.owner;
+                soldiersLabel.textContent =
+                    "Soldiers: " + territory.dataset.soldiers;
+
+                message.textContent =
+                    "Selected " + territory.dataset.name + ".";
+            });
+        });
+
+        document.getElementById("select-btn").addEventListener("click", () => {
+            if (!selected) {
+                message.textContent = "Select a territory first.";
+                return;
+            }
+
+            message.textContent =
+                "You selected " + selected.dataset.name + ".";
+        });
+
+        document.getElementById("attack-btn").addEventListener("click", () => {
+            message.textContent =
+                "Attack actions will be connected to the C# battle service next.";
+        });
+
+        document.getElementById("skip-btn").addEventListener("click", () => {
+            message.textContent =
+                "Skip Turn will be connected to your existing game service next.";
+        });
+    })();
+</script>

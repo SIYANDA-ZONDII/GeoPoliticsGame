@@ -1,0 +1,41 @@
+﻿@page
+@model GeopoliticsGame.Pages.DashboardModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Dashboard</h1>
+<p>Welcome, @User.Identity?.Name.</p>
+
+<a asp-page="/GameSetup" class="btn btn-primary mb-4">
+    Start a new campaign
+</a>
+
+<h2>My campaigns</h2>
+
+@if (Model.Games.Count == 0)
+{
+    <p>You have no saved campaigns yet.</p>
+}
+else
+{
+    @foreach (var game in Model.Games)
+    {
+        var countryName = game.Countries
+            .FirstOrDefault(country => country.IsPlayerCountry)?.Name
+            ?? "Campaign";
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <h3 class="h5">@countryName</h3>
+                <p class="mb-2">Round @game.RoundNumber · @game.Status</p>
+
+                <a asp-page="/Game" asp-route-id="@game.Id"
+                   class="btn btn-outline-primary">
+                    @(game.Status == "Completed" ? "View campaign" : "Resume campaign")
+                </a>
+            </div>
+        </div>
+    }
+}

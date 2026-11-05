@@ -1,0 +1,81 @@
+﻿@page
+@model GeopoliticsGame.Pages.GameSetupModel
+@{
+    ViewData["Title"] = "New Campaign";
+}
+
+<div class="game-dashboard">
+    <main class="setup-container">
+        <a asp-page="/Index" class="back-link">← Back to Dashboard</a>
+
+        <section class="setup-heading">
+            <p class="eyebrow">CAMPAIGN CONFIGURATION</p>
+            <h1>Choose your <span>starting nation.</span></h1>
+            <p>
+                Every conquest begins somewhere. Select your country,
+                prepare your strategy and get ready to face nine opponents.
+            </p>
+        </section>
+
+        <section class="setup-card">
+            <div class="setup-card-header">
+                <div>
+                    <p class="eyebrow">STEP 01 / COUNTRY SELECTION</p>
+                    <h2>Your starting country</h2>
+                </div>
+                <span class="setup-number">01</span>
+            </div>
+
+            <form method="post">
+                <label asp-for="SelectedCountry" class="setup-label">
+                    Select a country
+                </label>
+
+                <select asp-for="SelectedCountry"
+                        asp-items="Model.CountryOptions"
+                        class="country-select">
+                    <option value="">Choose your nation...</option>
+                </select>
+
+                <span asp-validation-for="SelectedCountry"
+                      class="validation-message"></span>
+
+                <div class="setup-info">
+                    <div class="info-item">
+                        <span class="info-label">COUNTRIES PER MATCH</span>
+                        <strong>10</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">COMPUTER OPPONENTS</span>
+                        <strong>9</strong>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">VICTORY CONDITION</span>
+                        <strong>World conquest</strong>
+                    </div>
+                </div>
+
+                <button type="submit" class="action-button setup-submit">
+                    Confirm Starting Nation <span>→</span>
+                </button>
+            </form>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Message))
+            {
+                <div class="setup-success" role="status">
+                    @Model.Message
+                </div>
+            }
+        </section>
+
+        <p class="setup-disclaimer">
+            Country selection is currently a prototype. Saving the campaign,
+            assigning soldiers and selecting the other countries will be
+            implemented in the next stage.
+        </p>
+    </main>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

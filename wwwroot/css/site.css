@@ -1,0 +1,96 @@
+/* Shared layout and keyboard focus */
+html {
+    position: relative;
+    min-height: 100%;
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+.btn:focus,
+.btn:active:focus,
+.form-control:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+.eyebrow {
+    margin: 0 0 12px;
+    color: var(--game-gold);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+/* Game setup */
+.game-dashboard {
+    --game-bg: #0b1120;
+    --game-text: #edf2fa;
+    --game-gold: #e6b85c;
+    min-height: 100vh;
+    margin: -16px;
+    padding-bottom: 24px;
+    background: var(--game-bg);
+    color: var(--game-text);
+    font-family: "Segoe UI", sans-serif;
+}
+
+.setup-container {
+    width: min(850px, 88%);
+    margin: 0 auto;
+    padding: 38px 0 60px;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 38px;
+    color: #91a1b8;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.setup-heading {
+    margin-bottom: 30px;
+}
+
+    .setup-heading h1 {
+        margin: 0;
+        font-size: clamp(30px, 4vw, 42px);
+        line-height: 1.2;
+    }
+
+        .setup-heading h1 span {
+            color: #e6b85c;
+        }
+
+    .setup-heading > p:last-child {
+        max-width: 590px;
+        color: #91a1b8;
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+.setup-card {
+    padding: 30px;
+    background: #121c30;
+    border: 1px solid #26354d;
+    border-radius: 16px;
+}
+
+.setup-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+    .setup-card-header h2 {
+        margin: 0;
