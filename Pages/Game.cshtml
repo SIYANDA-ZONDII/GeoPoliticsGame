@@ -4,17 +4,26 @@
 @{
     ViewData["Title"] = "Active Campaign";
 
-    var countries = Model.Game!.Countries;
-    var players = Model.Game.Players;
+    var game = Model.Game!;
+    var countries = game.Countries;
+    var players = game.Players;
+    var currentPlayer = Model.CurrentPlayer;
+    var isHumanTurn = currentPlayer?.IsHuman == true;
+    var hasPendingTransfer = !string.IsNullOrEmpty(game.PendingTransferToCountryId);
+    var hasPendingAllocation = game.PendingAllocationCount > 0;
+    var canTakeTurnAction = isHumanTurn &&
+        game.Status == "InProgress" &&
+        !Model.IsGameCompleted &&
+        !Model.HasPendingBattle &&
+        !hasPendingTransfer &&
+        !hasPendingAllocation;
 
-    var territoryColors = new[]
-    {
+    var territoryColors = new[] {
         "#3478F6", "#E05260", "#18A878", "#D6A12A", "#9560DB",
         "#E47B35", "#D64C9C", "#13A5B5", "#8494AA", "#A87852"
     };
 
-    var territoryShapes = new[]
-    {
+    var territoryShapes = new[] {
         "M 18,8 L 142,0 L 180,35 L 170,125 L 120,158 L 30,145 L 0,80 Z",
         "M 12,25 L 72,0 L 158,12 L 180,75 L 150,145 L 65,158 L 0,105 Z",
         "M 5,35 L 45,0 L 135,10 L 180,55 L 165,125 L 95,158 L 15,130 Z",
@@ -32,485 +41,397 @@
         border-radius: 18px;
     }
 
-    .campaign-board-page * {
-        box-sizing: border-box;
-    }
-
-    .campaign-board-page .eyebrow {
-        color: #83b9ff;
-        font-size: .72rem;
-        font-weight: 800;
-        letter-spacing: .16em;
-        margin-bottom: 8px;
-    }
-
-    .campaign-board-page h1,
-    .campaign-board-page h2,
-    .campaign-board-page h3 {
-        color: #f3f7ff;
-    }
-
-    .campaign-board-page .board-heading {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 18px;
-        margin: 22px 0;
-    }
-
-    .campaign-board-page .board-heading h1 {
-        font-size: clamp(1.7rem, 3vw, 2.5rem);
-        font-weight: 800;
-        margin-bottom: 8px;
-    }
-
-    .campaign-board-page .board-subtitle {
-        color: #a9bbd0;
-        margin: 0;
-    }
-
-    .campaign-board-page .round-pill {
-        background: #142c45;
-        border: 1px solid #294a6b;
-        padding: 13px 18px;
-        border-radius: 12px;
-        text-align: center;
-        min-width: 100px;
-    }
-
-    .campaign-board-page .round-pill span {
-        display: block;
-        color: #a9bbd0;
-        font-size: .7rem;
-        letter-spacing: .1em;
-    }
-
-    .campaign-board-page .round-pill strong {
-        display: block;
-        font-size: 1.6rem;
-        color: #fff;
-    }
-
-    .campaign-board-page .board-stats {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-        margin-bottom: 22px;
-    }
-
-    .campaign-board-page .board-stat {
-        background: #10253a;
-        border: 1px solid #203d58;
-        padding: 18px;
-        border-radius: 13px;
-    }
-
-    .campaign-board-page .board-stat span {
-        color: #9eb4cc;
-        font-size: .72rem;
-        font-weight: 700;
-        letter-spacing: .08em;
-    }
-
-    .campaign-board-page .board-stat strong {
-        display: block;
-        color: #fff;
-        font-size: 1.55rem;
-        margin-top: 7px;
-        overflow-wrap: anywhere;
-    }
-
-    .campaign-board-page .board-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 280px;
-        gap: 18px;
-        align-items: start;
-    }
-
-    .campaign-board-page .territory-board,
-    .campaign-board-page .country-panel,
-    .campaign-board-page .turn-panel {
-        background: #10253a;
-        border: 1px solid #203d58;
-        border-radius: 15px;
-        padding: 18px;
-    }
-
-    .campaign-board-page .board-panel-heading {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-    }
-
-    .campaign-board-page .board-panel-heading h2 {
-        font-size: 1.1rem;
-        font-weight: 750;
-        margin: 0;
-    }
-
-    .campaign-board-page .board-panel-heading span {
-        color: #91a9c2;
-        font-size: .8rem;
-    }
-
-    .campaign-board-page .territory-svg {
-        display: block;
-        width: 100%;
-        height: auto;
-        overflow: visible;
-    }
-
-    .campaign-board-page .territory {
-        cursor: pointer;
-        outline: none;
-    }
-
-    .campaign-board-page .territory-shape {
-        stroke: #091725;
-        stroke-width: 5;
-        stroke-linejoin: round;
-        transition: filter .15s, stroke .15s, stroke-width .15s;
-    }
-
-    .campaign-board-page .territory:hover .territory-shape {
-        filter: brightness(1.22);
-        stroke: #c5ddff;
-        stroke-width: 6;
-    }
-
-    .campaign-board-page .territory.selected .territory-shape {
-        stroke: #ffffff;
-        stroke-width: 8;
-        filter: brightness(1.12);
-    }
-
-    .campaign-board-page .territory:focus-visible .territory-shape {
-        stroke: #facc15;
-        stroke-width: 8;
-    }
-
-    .campaign-board-page .territory-label,
-    .campaign-board-page .territory-soldiers {
-        fill: #fff;
-        text-anchor: middle;
-        pointer-events: none;
-        paint-order: stroke;
-        stroke: rgba(0, 0, 0, .15);
-        stroke-width: 1px;
-    }
-
-    .campaign-board-page .territory-label {
-        font-size: 13px;
-        font-weight: 800;
-    }
-
-    .campaign-board-page .territory-soldiers {
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .campaign-board-page .territory-owner-label {
-        fill: #e5efff;
-        font-size: 10px;
-        text-anchor: middle;
-        pointer-events: none;
-    }
-
-    .campaign-board-page .board-hint {
-        color: #9db2c8;
-        font-size: .83rem;
-        line-height: 1.5;
-        margin: 12px 0 0;
-    }
-
-    .campaign-board-page .country-panel {
-        position: sticky;
-        top: 18px;
-    }
-
-    .campaign-board-page .selected-country-name {
-        font-size: 1.45rem;
-        font-weight: 800;
-        overflow-wrap: anywhere;
-        margin: 12px 0;
-    }
-
-    .campaign-board-page .country-color-line {
-        height: 5px;
-        border-radius: 99px;
-        margin-bottom: 18px;
-        background: #3478f6;
-    }
-
-    .campaign-board-page .detail-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid #244059;
-        font-size: .87rem;
-    }
-
-    .campaign-board-page .detail-row span {
-        color: #9eb4cc;
-    }
-
-    .campaign-board-page .detail-row strong {
-        color: #f4f7ff;
-        text-align: right;
-        overflow-wrap: anywhere;
-    }
-
-    .campaign-board-page .owner-chip {
-        display: inline-block;
-        padding: 5px 9px;
-        background: #1b3854;
-        border: 1px solid #345776;
-        color: #d7eaff;
-        border-radius: 7px;
-        font-size: .75rem;
-        margin-top: 12px;
-    }
-
-    .campaign-board-page .turn-panel {
-        margin-top: 18px;
-    }
-
-    .campaign-board-page .turn-list {
-        list-style: none;
-        padding: 0;
-        margin: 12px 0 0;
-    }
-
-    .campaign-board-page .turn-list li {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 0;
-        border-bottom: 1px solid #203d58;
-        color: #dbe7f5;
-        font-size: .88rem;
-    }
-
-    .campaign-board-page .turn-number {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 27px;
-        height: 27px;
-        flex-shrink: 0;
-        border-radius: 8px;
-        background: #1c3955;
-        color: #bcd8fa;
-        font-weight: 800;
-        font-size: .75rem;
-    }
-
-    .campaign-board-page .turn-badge {
-        margin-left: auto;
-        color: #8fd8b5;
-        font-size: .67rem;
-        font-weight: 800;
-        white-space: nowrap;
-    }
-
-    .campaign-board-page .game-message {
-        white-space: pre-line;
-        background: #142e45;
-        border: 1px solid #2a4b68;
-        border-radius: 10px;
-        padding: 14px;
-        margin: 12px 0;
-        color: #dbeaff;
-        line-height: 1.6;
-        font-size: .88rem;
-    }
-
-    .campaign-board-page .board-action {
-        display: block;
-        width: 100%;
-        border: 0;
-        border-radius: 9px;
-        background: #3478f6;
-        color: #fff;
-        font-weight: 750;
-        padding: 12px 14px;
-        margin-top: 12px;
-        cursor: pointer;
-        text-align: center;
-        text-decoration: none;
-    }
-
-    .campaign-board-page .board-action:hover {
-        background: #2564d6;
-        color: #fff;
-    }
-
-    .campaign-board-page .board-action.secondary {
-        background: #1b3854;
-        border: 1px solid #345776;
-    }
-
-    .campaign-board-page .board-action.secondary:hover {
-        background: #254967;
-    }
-
-    .campaign-board-page .muted-text {
-        color: #a9bbd0;
-        line-height: 1.55;
-        font-size: .88rem;
-    }
-
-    .campaign-board-page .transfer-panel {
-        margin-top: 18px;
-        background: #172f4a;
-        border: 1px solid #4b76a5;
-        border-radius: 15px;
-        padding: 22px;
-        color: #edf4ff;
-    }
-
-    .campaign-board-page .transfer-panel h2 {
-        margin-top: 0;
-        color: #a9ceff;
-    }
-
-    .campaign-board-page .transfer-panel label {
-        display: block;
-        margin: 14px 0 7px;
-        color: #dbeafe;
-        font-weight: 700;
-    }
-
-    .campaign-board-page .transfer-panel input[type="number"] {
-        display: block;
-        width: 100%;
-        max-width: 260px;
-        padding: 11px 12px;
-        border: 1px solid #58799b;
-        border-radius: 8px;
-        background: #0b1d30;
-        color: #fff;
-    }
-
-
-    .campaign-board-page .battle-panel {
-        margin-top: 18px;
-        background: #321f27;
-        border: 1px solid #a94b5b;
-        border-radius: 15px;
-        padding: 22px;
-        color: #fff1f2;
-    }
-
-    .campaign-board-page .battle-panel h2 {
-        margin-top: 0;
-        color: #fecdd3;
-    }
-
-    .campaign-board-page .battle-summary {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-        margin: 16px 0;
-    }
-
-    .campaign-board-page .battle-side {
-        padding: 14px;
-        border: 1px solid #75404b;
-        border-radius: 10px;
-        background: #271820;
-    }
-
-    .campaign-board-page .battle-side span {
-        display: block;
-        color: #fda4af;
-        font-size: .75rem;
-        font-weight: 800;
-        letter-spacing: .06em;
-        margin-bottom: 6px;
-    }
-
-    .campaign-board-page .battle-side strong {
-        display: block;
-        color: #fff;
-        font-size: 1.2rem;
-        overflow-wrap: anywhere;
-    }
-
-    .campaign-board-page .battle-log {
-        margin: 16px 0;
-        padding: 12px 12px 12px 30px;
-        border-radius: 9px;
-        background: #21151b;
-        color: #ffe4e6;
-        line-height: 1.65;
-    }
-
-    .campaign-board-page .battle-log li + li {
-        margin-top: 5px;
-    }
-
-    .campaign-board-page .board-action.danger {
-        background: #a83246;
-        border: 1px solid #fda4af;
-    }
-
-    .campaign-board-page .board-action.danger:hover {
-        background: #c13b52;
-    }
-
-    @@media (max-width: 520px) {
-        .campaign-board-page .battle-summary {
-            grid-template-columns: 1fr;
+        .campaign-board-page * {
+            box-sizing: border-box;
         }
-    }
 
-    .campaign-board-page .reinforcement-panel {
-        margin-top: 18px;
-        background: #102f2b;
-        border: 1px solid #27836b;
-        border-radius: 15px;
-        padding: 22px;
-        color: #edfdf7;
-    }
+        .campaign-board-page .eyebrow {
+            color: #83b9ff;
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .16em;
+            margin-bottom: 8px;
+        }
 
-    .campaign-board-page .reinforcement-panel h2 {
-        margin-top: 0;
-        color: #9af0d0;
-    }
+        .campaign-board-page h1,
+        .campaign-board-page h2,
+        .campaign-board-page h3 {
+            color: #f3f7ff;
+        }
 
-    .campaign-board-page .reinforcement-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: 12px;
-        margin-top: 16px;
-    }
+        .campaign-board-page .board-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin: 22px 0;
+        }
 
-    .campaign-board-page .reinforcement-item {
-        padding: 12px;
-        border: 1px solid #285b51;
-        border-radius: 10px;
-        background: #0c2523;
-    }
+            .campaign-board-page .board-heading h1 {
+                font-size: clamp(1.7rem, 3vw, 2.5rem);
+                font-weight: 800;
+                margin-bottom: 8px;
+            }
 
-    .campaign-board-page .reinforcement-item label {
-        display: block;
-        margin-bottom: 8px;
-        color: #d1fae5;
-        font-weight: 700;
-    }
+        .campaign-board-page .board-subtitle {
+            color: #a9bbd0;
+            margin: 0;
+        }
 
-    .campaign-board-page .reinforcement-item input[type="number"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #39796a;
-        border-radius: 7px;
-        background: #081b1a;
-        color: #fff;
-    }
+        .campaign-board-page .round-pill {
+            background: #142c45;
+            border: 1px solid #294a6b;
+            padding: 13px 18px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+            .campaign-board-page .round-pill span {
+                display: block;
+                color: #a9bbd0;
+                font-size: .7rem;
+                letter-spacing: .1em;
+            }
+
+            .campaign-board-page .round-pill strong {
+                display: block;
+                font-size: 1.6rem;
+                color: #fff;
+            }
+
+        .campaign-board-page .board-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .campaign-board-page .board-stat {
+            background: #10253a;
+            border: 1px solid #203d58;
+            padding: 18px;
+            border-radius: 13px;
+        }
+
+            .campaign-board-page .board-stat span {
+                color: #9eb4cc;
+                font-size: .72rem;
+                font-weight: 700;
+                letter-spacing: .08em;
+            }
+
+            .campaign-board-page .board-stat strong {
+                display: block;
+                color: #fff;
+                font-size: 1.55rem;
+                margin-top: 7px;
+                overflow-wrap: anywhere;
+            }
+
+        .campaign-board-page .board-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 280px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .campaign-board-page .territory-board,
+        .campaign-board-page .country-panel,
+        .campaign-board-page .turn-panel {
+            background: #10253a;
+            border: 1px solid #203d58;
+            border-radius: 15px;
+            padding: 18px;
+        }
+
+        .campaign-board-page .board-panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+            .campaign-board-page .board-panel-heading h2 {
+                font-size: 1.1rem;
+                font-weight: 750;
+                margin: 0;
+            }
+
+            .campaign-board-page .board-panel-heading span {
+                color: #91a9c2;
+                font-size: .8rem;
+            }
+
+        .campaign-board-page .territory-svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+        }
+
+        .campaign-board-page .territory {
+            cursor: pointer;
+            outline: none;
+        }
+
+        .campaign-board-page .territory-shape {
+            stroke: #091725;
+            stroke-width: 5;
+            stroke-linejoin: round;
+            transition: filter .15s, stroke .15s, stroke-width .15s;
+        }
+
+        .campaign-board-page .territory:hover .territory-shape {
+            filter: brightness(1.22);
+            stroke: #c5ddff;
+            stroke-width: 6;
+        }
+
+        .campaign-board-page .territory.selected .territory-shape {
+            stroke: #ffffff;
+            stroke-width: 8;
+            filter: brightness(1.12);
+        }
+
+        .campaign-board-page .territory:focus-visible .territory-shape {
+            stroke: #facc15;
+            stroke-width: 8;
+        }
+
+        .campaign-board-page .territory-label,
+        .campaign-board-page .territory-soldiers {
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+            paint-order: stroke;
+            stroke: rgba(0, 0, 0, .15);
+            stroke-width: 1px;
+        }
+
+        .campaign-board-page .territory-label {
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .campaign-board-page .territory-soldiers {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .campaign-board-page .territory-owner-label {
+            fill: #e5efff;
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .campaign-board-page .board-hint {
+            color: #9db2c8;
+            font-size: .83rem;
+            line-height: 1.5;
+            margin: 12px 0 0;
+        }
+
+        .campaign-board-page .country-panel {
+            position: sticky;
+            top: 18px;
+        }
+
+        .campaign-board-page .selected-country-name {
+            font-size: 1.45rem;
+            font-weight: 800;
+            overflow-wrap: anywhere;
+            margin: 12px 0;
+        }
+
+        .campaign-board-page .country-color-line {
+            height: 5px;
+            border-radius: 99px;
+            margin-bottom: 18px;
+            background: #3478f6;
+        }
+
+        .campaign-board-page .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #244059;
+            font-size: .87rem;
+        }
+
+            .campaign-board-page .detail-row span {
+                color: #9eb4cc;
+            }
+
+            .campaign-board-page .detail-row strong {
+                color: #f4f7ff;
+                text-align: right;
+                overflow-wrap: anywhere;
+            }
+
+        .campaign-board-page .owner-chip {
+            display: inline-block;
+            padding: 5px 9px;
+            background: #1b3854;
+            border: 1px solid #345776;
+            color: #d7eaff;
+            border-radius: 7px;
+            font-size: .75rem;
+            margin-top: 12px;
+        }
+
+        .campaign-board-page .turn-panel {
+            margin-top: 18px;
+        }
+
+        .campaign-board-page .current-turn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0;
+        }
+
+            .campaign-board-page .current-turn span {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #78dcc0;
+            }
+
+        .campaign-board-page .game-message {
+            white-space: pre-line;
+            background: #142e45;
+            border: 1px solid #2a4b68;
+            border-radius: 10px;
+            padding: 14px;
+            margin: 12px 0;
+            color: #dbeaff;
+            line-height: 1.6;
+            font-size: .88rem;
+        }
+
+        .campaign-board-page .board-action {
+            display: block;
+            width: 100%;
+            border: 0;
+            border-radius: 9px;
+            background: #3478f6;
+            color: #fff;
+            font-weight: 750;
+            padding: 12px 14px;
+            margin-top: 12px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+            .campaign-board-page .board-action:hover {
+                background: #2564d6;
+                color: #fff;
+            }
+
+            .campaign-board-page .board-action.secondary {
+                background: #1b3854;
+                border: 1px solid #345776;
+            }
+
+                .campaign-board-page .board-action.secondary:hover {
+                    background: #254967;
+                }
+
+        .campaign-board-page .muted-text {
+            color: #a9bbd0;
+            line-height: 1.55;
+            font-size: .88rem;
+        }
+
+        .campaign-board-page .transfer-panel {
+            margin-top: 18px;
+            background: #172f4a;
+            border: 1px solid #4b76a5;
+            border-radius: 15px;
+            padding: 22px;
+            color: #edf4ff;
+        }
+
+            .campaign-board-page .transfer-panel h2 {
+                margin-top: 0;
+                color: #a9ceff;
+            }
+
+            .campaign-board-page .transfer-panel label {
+                display: block;
+                margin: 14px 0 7px;
+                color: #dbeafe;
+                font-weight: 700;
+            }
+
+            .campaign-board-page .transfer-panel input[type="number"] {
+                display: block;
+                width: 100%;
+                max-width: 260px;
+                padding: 11px 12px;
+                border: 1px solid #58799b;
+                border-radius: 8px;
+                background: #0b1d30;
+                color: #fff;
+            }
+
+        .campaign-board-page .board-action.danger {
+            background: #a83246;
+            border: 1px solid #fda4af;
+        }
+
+            .campaign-board-page .board-action.danger:hover {
+                background: #c13b52;
+            }
+
+        .campaign-board-page .reinforcement-panel {
+            margin-top: 18px;
+            background: #102f2b;
+            border: 1px solid #27836b;
+            border-radius: 15px;
+            padding: 22px;
+            color: #edfdf7;
+        }
+
+            .campaign-board-page .reinforcement-panel h2 {
+                margin-top: 0;
+                color: #9af0d0;
+            }
+
+        .campaign-board-page .reinforcement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .campaign-board-page .reinforcement-item {
+            padding: 12px;
+            border: 1px solid #285b51;
+            border-radius: 10px;
+            background: #0c2523;
+        }
+
+            .campaign-board-page .reinforcement-item label {
+                display: block;
+                margin-bottom: 8px;
+                color: #d1fae5;
+                font-weight: 700;
+            }
+
+            .campaign-board-page .reinforcement-item input[type="number"] {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #39796a;
+                border-radius: 7px;
+                background: #081b1a;
+                color: #fff;
+            }
 
     @@media (max-width: 1050px) {
         .campaign-board-page .board-layout {
@@ -527,31 +448,31 @@
             padding: 15px;
         }
 
-        .campaign-board-page .board-heading {
-            align-items: flex-start;
-        }
+            .campaign-board-page .board-heading {
+                align-items: flex-start;
+            }
 
-        .campaign-board-page .board-stats {
-            grid-template-columns: 1fr;
-        }
+            .campaign-board-page .board-stats {
+                grid-template-columns: 1fr;
+            }
 
-        .campaign-board-page .territory-board,
-        .campaign-board-page .country-panel,
-        .campaign-board-page .turn-panel {
-            padding: 12px;
-        }
+            .campaign-board-page .territory-board,
+            .campaign-board-page .country-panel,
+            .campaign-board-page .turn-panel {
+                padding: 12px;
+            }
 
-        .campaign-board-page .territory-label {
-            font-size: 11px;
-        }
+            .campaign-board-page .territory-label {
+                font-size: 11px;
+            }
 
-        .campaign-board-page .territory-soldiers {
-            font-size: 10px;
-        }
+            .campaign-board-page .territory-soldiers {
+                font-size: 10px;
+            }
 
-        .campaign-board-page .territory-owner-label {
-            font-size: 9px;
-        }
+            .campaign-board-page .territory-owner-label {
+                font-size: 9px;
+            }
     }
 
     .campaign-board-page .fast-forward-button {
@@ -560,18 +481,14 @@
         border: 1px solid #60a5fa;
     }
 
-    .campaign-board-page .fast-forward-button:hover {
-        background: #2563eb;
-    }
+        .campaign-board-page .fast-forward-button:hover {
+            background: #2563eb;
+        }
 
-    .campaign-board-page .fast-forward-button:disabled {
-        opacity: .7;
-        cursor: wait;
-    }
-
-    #fast-forward-status:empty {
-        display: none;
-    }
+        .campaign-board-page .fast-forward-button:disabled {
+            opacity: .7;
+            cursor: wait;
+        }
 </style>
 
 <div class="campaign-board-page">
@@ -580,8 +497,8 @@
     @if (Model.IsGameCompleted)
     {
         <section class="turn-panel" role="status">
-            <h1>🏆 Campaign Completed!</h1>
-            <p>The campaign has ended. All countries have been conquered by the winner.</p>
+            <h1>@(Model.HasLost ? "You lost" : "YOU WIN!!!!!")</h1>
+            <p>@(Model.HasLost ? "Your starting country was captured." : "The campaign has ended.")</p>
             <a asp-page="/Index" class="board-action">Return to Dashboard</a>
         </section>
     }
@@ -597,7 +514,7 @@
 
         <div class="round-pill">
             <span>ROUND</span>
-            <strong>@Model.Game.RoundNumber</strong>
+            <strong>@game.RoundNumber</strong>
         </div>
     </section>
 
@@ -730,93 +647,13 @@
                 Your starting nation is selected.
             </p>
 
-            <button type="button"
-                    id="clear-selection-button"
-                    class="board-action secondary">
+            <button type="button" id="clear-selection-button" class="board-action secondary">
                 Select My Starting Nation
             </button>
         </aside>
     </div>
 
-
-    @if (Model.HasPendingBattle &&
-         Model.Game != null &&
-         Model.CurrentPlayer?.IsHuman == true &&
-         Model.Game.PendingBattlePlayerId == Model.CurrentPlayer.Id &&
-         Model.Game.Status == "InProgress")
-    {
-        var battleAttacker = Model.Game.Countries.FirstOrDefault(
-            c => c.Id == Model.Game.PendingBattleAttackingCountryId);
-        var battleDefender = Model.Game.Countries.FirstOrDefault(
-            c => c.Id == Model.Game.PendingBattleDefendingCountryId);
-
-        if (battleAttacker != null && battleDefender != null)
-        {
-            <section class="battle-panel" aria-labelledby="battle-panel-title">
-                <p class="eyebrow">BATTLE IN PROGRESS</p>
-                <h2 id="battle-panel-title">
-                    @battleAttacker.Name vs @battleDefender.Name
-                </h2>
-
-                <p>
-                    One round has been resolved. Review the casualties below,
-                    then choose whether to continue attacking or stop and end your turn.
-                </p>
-
-                <div class="battle-summary">
-                    <div class="battle-side">
-                        <span>ATTACKING ARMY</span>
-                        <strong>@battleAttacker.Name</strong>
-                        <p>@battleAttacker.Soldiers soldiers remaining</p>
-                        <p>Initial army: @Model.Game.PendingBattleInitialAttackerSoldiers</p>
-                        <p>Total losses: @Model.Game.PendingBattleAttackerLosses</p>
-                    </div>
-
-                    <div class="battle-side">
-                        <span>DEFENDING ARMY</span>
-                        <strong>@battleDefender.Name</strong>
-                        <p>@battleDefender.Soldiers soldiers remaining</p>
-                        <p>Initial army: @Model.Game.PendingBattleInitialDefenderSoldiers</p>
-                        <p>Total losses: @Model.Game.PendingBattleDefenderLosses</p>
-                    </div>
-                </div>
-
-                @if (Model.Game.PendingBattleLog != null &&
-                     Model.Game.PendingBattleLog.Count > 0)
-                {
-                    <h3>Battle report</h3>
-                    <ol class="battle-log">
-                        @foreach (var battleEvent in Model.Game.PendingBattleLog)
-                        {
-                            <li>@battleEvent</li>
-                        }
-                    </ol>
-                }
-
-                <form method="post"
-                      asp-page-handler="ContinueAttack"
-                      asp-route-id="@Model.Game.Id">
-                    <button type="submit" class="board-action">
-                        Continue Attack — Roll Next Round
-                    </button>
-                </form>
-
-                <form method="post"
-                      asp-page-handler="StopAttack"
-                      asp-route-id="@Model.Game.Id">
-                    <button type="submit" class="board-action danger">
-                        Stop Attack and End Turn
-                    </button>
-                </form>
-            </section>
-        }
-    }
-
-    @if (Model.CurrentPlayer?.IsHuman == true &&
-         !Model.HasPendingBattle &&
-         Model.Game?.Status == "InProgress" &&
-         string.IsNullOrEmpty(Model.Game.PendingTransferToCountryId) &&
-         Model.Game.PendingAllocationCount == 0)
+    @if (canTakeTurnAction)
     {
         <section class="turn-panel">
             <p class="eyebrow">MILITARY OPERATIONS</p>
@@ -827,20 +664,15 @@
                 then select a country controlled by an opponent.
             </p>
 
-            <form method="post"
-                  asp-page-handler="Attack"
-                  asp-route-id="@Model.Game.Id">
+            <form method="post" asp-page-handler="Attack" asp-route-id="@game.Id">
 
                 <label for="attackingCountryId">Attacking country</label>
 
-                <select id="attackingCountryId"
-                        name="attackingCountryId"
-                        required
-                        class="form-select mb-3">
+                <select id="attackingCountryId" name="attackingCountryId" required class="form-select mb-3">
                     <option value="">Select your country</option>
 
-                    @foreach (var country in Model.Game.Countries
-                        .Where(c => c.OwnerId == Model.CurrentPlayer.Id &&
+                    @foreach (var country in game.Countries
+                        .Where(c => c.OwnerId == currentPlayer!.Id &&
                                     c.Soldiers >= 2))
                     {
                         <option value="@country.Id">
@@ -851,17 +683,14 @@
 
                 <label for="targetCountryId">Target country</label>
 
-                <select id="targetCountryId"
-                        name="targetCountryId"
-                        required
-                        class="form-select mb-3">
+                <select id="targetCountryId" name="targetCountryId" required class="form-select mb-3">
                     <option value="">Select an enemy country</option>
 
-                    @foreach (var country in Model.Game.Countries
+                    @foreach (var country in game.Countries
                         .Where(c => c.OwnerId != null &&
-                                    c.OwnerId != Model.CurrentPlayer.Id))
+                                    c.OwnerId != currentPlayer!.Id))
                     {
-                        var owner = Model.Game.Players.FirstOrDefault(
+                        var owner = game.Players.FirstOrDefault(
                             p => p.Id == country.OwnerId);
 
                         <option value="@country.Id">
@@ -878,15 +707,15 @@
         </section>
     }
 
-    @if (Model.Game != null &&
-         !string.IsNullOrEmpty(Model.Game.PendingTransferToCountryId) &&
-         Model.CurrentPlayer?.IsHuman == true &&
-         Model.Game.PendingTransferPlayerId == Model.CurrentPlayer.Id)
+    @if (!Model.IsGameCompleted &&
+         hasPendingTransfer &&
+         currentPlayer is { IsHuman: true } &&
+         game.PendingTransferPlayerId == currentPlayer!.Id)
     {
-        var transferTarget = Model.Game.Countries.FirstOrDefault(
-            c => c.Id == Model.Game.PendingTransferToCountryId);
-        var transferSource = Model.Game.Countries.FirstOrDefault(
-            c => c.Id == Model.Game.PendingTransferFromCountryId);
+        var transferTarget = game.Countries.FirstOrDefault(
+            c => c.Id == game.PendingTransferToCountryId);
+        var transferSource = game.Countries.FirstOrDefault(
+            c => c.Id == game.PendingTransferFromCountryId);
 
         if (transferTarget != null && transferSource != null)
         {
@@ -897,7 +726,7 @@
                 <p>
                     You conquered <strong>@transferTarget.Name</strong>.
                     Your conquest reward of
-                    <strong>@Model.Game.PendingTransferReward soldiers</strong>
+                    <strong>@game.PendingTransferReward soldiers</strong>
                     has been added to your army in <strong>@transferSource.Name</strong>.
                 </p>
 
@@ -908,7 +737,7 @@
                 </p>
 
                 <form method="post" asp-page-handler="CompleteTransfer">
-                    <input type="hidden" name="gameId" value="@Model.Game.Id" />
+                    <input type="hidden" name="gameId" value="@game.Id" />
 
                     <label for="soldiersToTransfer">Soldiers to transfer</label>
                     <input type="number"
@@ -927,14 +756,13 @@
         }
     }
 
-    @if (Model.Game != null &&
-         Model.CurrentPlayer?.IsHuman == true &&
-         Model.Game.Status == "InProgress" &&
-         Model.Game.PendingAllocationCount > 0 &&
-         Model.Game.PendingAllocationPlayerId == Model.CurrentPlayer.Id)
+    @if (currentPlayer is { IsHuman: true } &&
+         game.Status == "InProgress" &&
+         hasPendingAllocation &&
+         game.PendingAllocationPlayerId == currentPlayer!.Id)
     {
-        var reinforcementCountries = Model.Game.Countries
-            .Where(c => c.OwnerId == Model.CurrentPlayer.Id)
+        var reinforcementCountries = game.Countries
+            .Where(c => c.OwnerId == currentPlayer!.Id)
             .OrderBy(c => c.Name)
             .ToList();
 
@@ -942,13 +770,13 @@
             <p class="eyebrow">REINFORCEMENTS</p>
             <h2>Deploy your soldiers</h2>
             <p>
-                You have <strong>@Model.Game.PendingAllocationCount reinforcements</strong>
+                You have <strong>@game.PendingAllocationCount reinforcements</strong>
                 to allocate this turn. Enter how many soldiers to add to each country.
-                The total must equal @Model.Game.PendingAllocationCount.
+                The total must equal @game.PendingAllocationCount.
             </p>
 
             <form method="post" asp-page-handler="AllocateReinforcements">
-                <input type="hidden" name="id" value="@Model.Game.Id" />
+                <input type="hidden" name="id" value="@game.Id" />
 
                 <div class="reinforcement-grid">
                     @foreach (var country in reinforcementCountries)
@@ -962,7 +790,7 @@
                                    id="reinforcement-@country.Id"
                                    name="allocations[@country.Id]"
                                    min="0"
-                                   max="@Model.Game.PendingAllocationCount"
+                                   max="@game.PendingAllocationCount"
                                    value="0"
                                    required />
                         </div>
@@ -976,29 +804,17 @@
         </section>
     }
 
+    @if (!Model.IsGameCompleted && Model.CurrentPlayer is { } activePlayer)
+    {
+        <section class="turn-panel" aria-label="Current turn">
+            <p class="current-turn">
+                <span aria-hidden="true"></span>
+                <strong>Current turn: @(activePlayer.IsHuman ? "You" : activePlayer.Name)</strong>
+            </p>
+        </section>
+    }
+
     <section class="turn-panel">
-        <p class="eyebrow">COMMAND SEQUENCE</p>
-        <h2>Turn order</h2>
-
-        <ol class="turn-list">
-            @foreach (var player in players.OrderBy(p => p.TurnOrder))
-            {
-                <li>
-                    <span class="turn-number">@(player.TurnOrder + 1)</span>
-                    <span>@player.Name</span>
-
-                    @if (player.IsHuman)
-                    {
-                        <span class="turn-badge">YOU</span>
-                    }
-
-                    @if (Model.CurrentPlayer?.Id == player.Id)
-                    {
-                        <span class="turn-badge">CURRENT TURN</span>
-                    }
-                </li>
-            }
-        </ol>
 
         <div class="game-message" role="status">
             @if (TempData["GameMessage"] is string message)
@@ -1011,57 +827,48 @@
             }
         </div>
 
-        @if (Model.CurrentPlayer?.IsHuman == true &&
-             !Model.HasPendingBattle &&
-             string.IsNullOrEmpty(Model.Game.PendingTransferToCountryId) &&
-             Model.Game.PendingAllocationCount == 0 &&
-             !Model.IsGameCompleted)
+        @if (Model.HasPendingBattle &&
+             !Model.IsGameCompleted &&
+             game.Status == "InProgress" &&
+             Model.CurrentPlayer?.IsHuman == true &&
+             game.PendingBattlePlayerId == currentPlayer!.Id)
         {
-            <p class="muted-text">
-                It is your turn. You can currently skip your turn to advance
-                the campaign.
-            </p>
+            <form method="post" asp-page-handler="ContinueAttack" asp-route-id="@game.Id">
+                <button type="submit" class="board-action">
+                    Continue Attack — Roll Next Round
+                </button>
+            </form>
 
-            <form method="post"
-                  asp-page-handler="SkipTurn"
-                  asp-route-id="@Model.Game.Id">
+            <form method="post" asp-page-handler="StopAttack" asp-route-id="@game.Id">
+                <button type="submit" class="board-action danger">
+                    Stop Attack and End Turn
+                </button>
+            </form>
+        }
+        else if (canTakeTurnAction)
+        {
+            <form method="post" asp-page-handler="SkipTurn" asp-route-id="@game.Id">
                 <button type="submit" class="board-action">
                     Skip Turn →
                 </button>
             </form>
         }
-        else if (Model.CurrentPlayer is not null &&
-                 string.IsNullOrEmpty(Model.Game.PendingTransferToCountryId) &&
-                 Model.Game.PendingAllocationCount == 0 &&
+        else if (currentPlayer?.IsHuman == false &&
+                 !hasPendingTransfer &&
+                 !hasPendingAllocation &&
                  !Model.IsGameCompleted)
         {
-            <p class="muted-text">
-                It is @Model.CurrentPlayer.Name's turn. Process the NPC's
-                decision to continue the campaign.
-            </p>
-
-            <form method="post"
-                  asp-page-handler="ProcessNpcTurn"
-                  asp-route-id="@Model.Game.Id"
-                  id="npc-turn-form">
-                <button type="submit"
-                        class="board-action"
-                        id="process-npc-button">
+            <form method="post" asp-page-handler="ProcessNpcTurn" asp-route-id="@game.Id" id="npc-turn-form">
+                <button type="submit" class="board-action" id="process-npc-button">
                     Process NPC Turn →
                 </button>
             </form>
 
-            <button type="button"
-                    class="board-action fast-forward-button"
-                    id="fast-forward-button">
+            <button type="button" class="board-action fast-forward-button" id="fast-forward-button">
                 ⏩ Fast Forward to My Turn
             </button>
         }
 
-        <p id="fast-forward-status"
-           class="muted-text"
-           role="status"
-           aria-live="polite"></p>
     </section>
 </div>
 
@@ -1080,7 +887,9 @@
         const message = document.getElementById("country-selection-message");
         const clearButton = document.getElementById("clear-selection-button");
 
-        if (!territories.length) return;
+        if (!territories.length) {
+            return;
+        }
 
         function selectTerritory(territory) {
             territories.forEach(item => item.classList.remove("selected"));
@@ -1143,135 +952,52 @@
 
 <script>
     (() => {
-        const gameId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Game?.Id ?? ""));
+        const gameId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Game!.Id));
         const storageKey = "geoPoliticsFastForward_" + gameId;
+        const form = document.getElementById("npc-turn-form");
+
+        if (!form) {
+            sessionStorage.removeItem(storageKey);
+            return;
+        }
 
         const button = document.getElementById("fast-forward-button");
-        const form = document.getElementById("npc-turn-form");
-        const status = document.getElementById("fast-forward-status");
-
-        const isHumanTurn = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CurrentPlayer?.IsHuman == true));
-        const isCompleted = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.IsGameCompleted));
-        const hasPendingTransfer = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(!string.IsNullOrEmpty(Model.Game?.PendingTransferToCountryId)));
-        const hasPendingAllocation = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.Game?.PendingAllocationCount ?? 0) > 0));
-
-        let timer = null;
+        const startLabel = button.textContent.trim();
+        let timer;
         let submitting = false;
 
-        function stopFastForward(message) {
-            sessionStorage.removeItem(storageKey);
-
-            if (timer !== null) {
-                window.clearTimeout(timer);
-                timer = null;
-            }
-
-            if (button) {
-                button.textContent = "⏩ Fast Forward to My Turn";
-                button.disabled = false;
-            }
-
-            if (status && message) {
-                status.textContent = message;
-            }
+        function scheduleNextTurn() {
+            button.textContent = "Stop Fast Forward";
+            timer = setTimeout(() => form.requestSubmit(), 900);
         }
 
-        function canContinue() {
-            return !isHumanTurn &&
-                   !isCompleted &&
-                   !hasPendingTransfer &&
-                   !hasPendingAllocation;
-        }
-
-        function runNextNpcTurn() {
-            if (!sessionStorage.getItem(storageKey)) return;
-
-            if (isCompleted) {
-                stopFastForward("The campaign has ended.");
+        form.addEventListener("submit", event => {
+            if (submitting) {
+                event.preventDefault();
                 return;
             }
-
-            if (isHumanTurn) {
-                stopFastForward("Your turn has arrived. Choose your next move.");
-                return;
-            }
-
-            if (hasPendingTransfer || hasPendingAllocation) {
-                stopFastForward(
-                    "Fast Forward paused because an action needs to be completed first."
-                );
-                return;
-            }
-
-            if (!form) {
-                stopFastForward(
-                    "Fast Forward stopped because there are no NPC turns to process."
-                );
-                return;
-            }
-
-            if (submitting) return;
 
             submitting = true;
+            clearTimeout(timer);
+        });
 
-            if (button) {
-                button.disabled = true;
-                button.textContent = "⏩ Fast Forwarding…";
+        button.addEventListener("click", () => {
+            if (sessionStorage.getItem(storageKey)) {
+                sessionStorage.removeItem(storageKey);
+                clearTimeout(timer);
+                button.textContent = startLabel;
+                button.disabled = submitting;
+                return;
             }
 
-            if (status) {
-                status.textContent = "Processing NPC turns until your turn…";
-            }
-
-            form.requestSubmit();
-        }
-
-        if (button) {
-            button.addEventListener("click", () => {
-                if (sessionStorage.getItem(storageKey)) {
-                    stopFastForward("Fast Forward stopped.");
-                    return;
-                }
-
-                if (!canContinue()) {
-                    if (status) {
-                        status.textContent = isHumanTurn
-                            ? "It is already your turn."
-                            : "Fast Forward is unavailable until pending actions are completed.";
-                    }
-
-                    return;
-                }
-
+            if (!submitting) {
                 sessionStorage.setItem(storageKey, "true");
-                submitting = false;
-                runNextNpcTurn();
-            });
-        }
-
-        // After each NPC turn, the server redirects back to this page.
-        // Continue only if Fast Forward was explicitly started by the player.
-        if (sessionStorage.getItem(storageKey)) {
-            if (!canContinue()) {
-                stopFastForward(
-                    isCompleted
-                        ? "The campaign has ended."
-                        : isHumanTurn
-                            ? "Your turn has arrived. Choose your next move."
-                            : "Fast Forward paused because a pending action needs attention."
-                );
-            } else if (form) {
-                if (status) {
-                    status.textContent = "Fast Forward is processing NPC turns…";
-                }
-
-                timer = window.setTimeout(() => {
-                    submitting = false;
-                    runNextNpcTurn();
-                }, 900);
-            } else {
-                stopFastForward("Fast Forward stopped.");
+                scheduleNextTurn();
             }
+        });
+
+        if (sessionStorage.getItem(storageKey)) {
+            scheduleNextTurn();
         }
     })();
 </script>

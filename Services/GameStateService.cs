@@ -1,4 +1,4 @@
-﻿
+
 using GeopoliticsGame.Models;
 
 namespace GeopoliticsGame.Services;
@@ -165,7 +165,13 @@ public class GameStateService
                         + $"{currentPlayer.Name} received {reward} bonus soldiers "
                         + $"and transferred {transfer} soldiers to {target.Name}.";
 
-                    if (game.Countries.All(
+                    if (game.HasLostAllCountries())
+                    {
+                        game.Status = "Completed";
+                        message += Environment.NewLine
+                            + "You lost your last country.";
+                    }
+                    else if (game.Countries.All(
                         c => c.OwnerId == currentPlayer.Id))
                     {
                         game.Status = "Completed";
@@ -185,6 +191,50 @@ public class GameStateService
                 "The game could not be saved after the NPC turn.");
 
         return (game, message);
+    }
+
+    public async Task<string> TransferSoldiersAsync(
+        string gameId,
+        string? userId,
+        string sourceCountryId,
+        string destinationCountryId,
+        int soldiers)
+    {
+        var game = await GetGameAsync(gameId)
+            ?? throw new InvalidOperationException("Game not found.");
+
+        if (string.IsNullOrEmpty(userId) || game.OwnerUserId != userId)
+            throw new InvalidOperationException("Only the campaign owner can transfer soldiers.");
+
+        ValidateGame(game);
+        EnsureGameInProgress(game);
+        EnsureNoPendingBattle(game);
+        EnsureNoPendingTransfer(game);
+        EnsureNoPendingAllocation(game);
+
+        var player = game.Players.OrderBy(p => p.TurnOrder).ElementAt(game.CurrentPlayerIndex);
+        if (!player.IsHuman)
+            throw new InvalidOperationException("You can transfer soldiers only on your turn.");
+
+        var source = game.Countries.FirstOrDefault(c => c.Id == sourceCountryId);
+        var destination = game.Countries.FirstOrDefault(c => c.Id == destinationCountryId);
+
+        if (source is null || destination is null || source.Id == destination.Id ||
+            source.OwnerId != player.Id || destination.OwnerId != player.Id)
+        {
+            throw new InvalidOperationException("Choose two different countries you control.");
+        }
+
+        if (soldiers < 1 || soldiers >= source.Soldiers)
+            throw new InvalidOperationException("Transfer at least one soldier and leave at least one behind.");
+
+        source.Soldiers -= soldiers;
+        destination.Soldiers += soldiers;
+
+        if (!await _mongoService.UpdateGameAsync(game))
+            throw new InvalidOperationException("The game changed. Review the current board and try again.");
+
+        return $"Transferred {soldiers} soldiers from {source.Name} to {destination.Name}.";
     }
 
     // Start a human attack and resolve exactly one combat round.
@@ -498,11 +548,14 @@ public class GameStateService
                 "Both countries must be owned by the current player.");
         }
 
-        int reward = game.PendingTransferReward;
+        int maxTransfer = attacker.Soldiers - 1;
 
-        if (soldiersToTransfer < 0 || soldiersToTransfer > reward)
+        if (soldiersToTransfer < 1 || soldiersToTransfer > maxTransfer)
+        {
             throw new InvalidOperationException(
-                $"Transfer between 0 and {reward} bonus soldiers.");
+                $"Transfer between 1 and {maxTransfer} soldiers. " +
+                "Leave at least one soldier in the attacking country.");
+        }
 
         if (attacker.Soldiers - soldiersToTransfer < 1)
             throw new InvalidOperationException(
@@ -719,7 +772,7 @@ public class GameStateService
 
     private static void EnsureGameInProgress(GameSession game)
     {
-        if (game.Status == "Completed")
+        if (game.Status == "Completed" || game.HasLostAllCountries())
             throw new InvalidOperationException(
                 "The game has already ended.");
     }

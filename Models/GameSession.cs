@@ -1,10 +1,12 @@
-﻿
+
 namespace GeopoliticsGame.Models;
 
 public class GameSession
 {
     public string Id { get; set; } =
         Guid.NewGuid().ToString();
+
+    public string? Revision { get; set; }
 
     public string OwnerUserId { get; set; } = string.Empty;
 
@@ -53,4 +55,10 @@ public class GameSession
     public int PendingBattleDefenderLosses { get; set; }
 
     public List<string> PendingBattleLog { get; set; } = new();
+
+    public bool HasLostAllCountries()
+    {
+        var human = Players.FirstOrDefault(player => player.IsHuman);
+        return human is not null && Countries.All(country => country.OwnerId != human.Id);
+    }
 }

@@ -57,11 +57,25 @@ public class MongoDbConnectionService
     // Update an existing game without creating a new document.
     public async Task<bool> UpdateGameAsync(GameSession game)
     {
-        var result = await GameSessions.ReplaceOneAsync(
-            session => session.Id == game.Id,
-            game,
-            new ReplaceOptions { IsUpsert = false });
+        var previousRevision = game.Revision;
+        var nextRevision = Guid.NewGuid().ToString();
+        game.Revision = nextRevision;
+        bool saved = false;
 
-        return result.MatchedCount > 0;
+        try
+        {
+            var result = await GameSessions.ReplaceOneAsync(
+                session => session.Id == game.Id && session.Revision == previousRevision,
+                game,
+                new ReplaceOptions { IsUpsert = false });
+
+            saved = result.MatchedCount > 0;
+            return saved;
+        }
+        finally
+        {
+            if (!saved)
+                game.Revision = previousRevision;
+        }
     }
 }

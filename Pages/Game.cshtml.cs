@@ -25,8 +25,9 @@ public class GameModel : PageModel
 
     public Player? CurrentPlayer { get; private set; }
 
-    public bool IsGameCompleted =>
-        Game?.Status == "Completed";
+    public bool HasLost => Game?.HasLostAllCountries() == true;
+
+    public bool IsGameCompleted => Game?.Status == "Completed" || HasLost;
 
     public bool HasPendingBattle =>
         !string.IsNullOrWhiteSpace(
@@ -84,6 +85,34 @@ public class GameModel : PageModel
                 503,
                 "Unable to load the game from the database. Please try again.");
         }
+    }
+
+    public async Task<IActionResult> OnPostTransferSoldiersAsync(
+        string id,
+        string sourceCountryId,
+        string destinationCountryId,
+        int soldiers)
+    {
+        try
+        {
+            TempData["GameMessage"] = await _gameStateService.TransferSoldiersAsync(
+                id,
+                User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+                sourceCountryId,
+                destinationCountryId,
+                soldiers);
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["GameMessage"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Soldier transfer failed for game {GameId}.", id);
+            TempData["GameMessage"] = "The transfer could not be completed. Please try again.";
+        }
+
+        return RedirectToPage("/Game", new { id });
     }
 
     public async Task<IActionResult> OnPostAttackAsync(
