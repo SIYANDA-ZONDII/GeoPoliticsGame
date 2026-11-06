@@ -142,7 +142,7 @@ public class GameStateService
                         string.Join(" ", battleResult.BattleLog));
 
                 message += Environment.NewLine
-                    + "AI Commentary: " + commentary;
+                    + "Commentary: " + commentary;
 
                 if (battleResult.WasConquered)
                 {
