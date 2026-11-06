@@ -12,6 +12,15 @@ public class AICommentaryService(HttpClient http, IConfiguration configuration, 
         var endpoint = configuration["Ollama:Endpoint"] ?? "http://localhost:11434/api/chat";
         var model = configuration["Ollama:Model"] ?? "llama3.2:3b";
         var apiKey = configuration["Ollama:ApiKey"];
+        var groqKey = configuration["Groq:ApiKey"];
+
+        if (!string.IsNullOrWhiteSpace(groqKey))
+        {
+            endpoint = "https://api.groq.com/openai/v1/chat/completions";
+            model = "openai/gpt-oss-20b";
+            apiKey = groqKey;
+        }
+
         var prompt = $"Write two short sentences of strategy-game battle commentary. " +
             $"Attacker: {attacker}. Defender: {defender}. Actual result: {result}. " +
             "Keep the facts accurate and do not invent details.";
@@ -37,33 +46,34 @@ public class AICommentaryService(HttpClient http, IConfiguration configuration, 
             using var response = await http.SendAsync(request, timeout.Token);
             response.EnsureSuccessStatusCode();
 
-            var data = await response.Content.ReadFromJsonAsync<OllamaResponse>(cancellationToken: timeout.Token);
-            var commentary = data?.Message?.Content;
+            var data = await response.Content.ReadFromJsonAsync<CommentaryResponse>(cancellationToken: timeout.Token);
+            var commentary = data?.Message?.Content ?? data?.Choices?.FirstOrDefault()?.Message?.Content;
 
             if (!string.IsNullOrWhiteSpace(commentary))
             {
                 return commentary.Trim();
             }
 
-            logger.LogWarning("Ollama returned empty battle commentary.");
+            logger.LogWarning("Commentary API returned empty battle commentary.");
         }
         catch (HttpRequestException ex)
         {
-            logger.LogWarning("Ollama request failed. HTTP status: {StatusCode}; error: {Error}.",
+            logger.LogWarning("Commentary API request failed. HTTP status: {StatusCode}; error: {Error}.",
                 ex.StatusCode, ex.HttpRequestError);
         }
         catch (OperationCanceledException)
         {
-            logger.LogWarning("Ollama commentary request timed out.");
+            logger.LogWarning("Commentary API request timed out.");
         }
         catch (JsonException)
         {
-            logger.LogWarning("Ollama returned an invalid commentary response.");
+            logger.LogWarning("Commentary API returned an invalid commentary response.");
         }
 
         return fallback;
     }
 
-    private sealed record OllamaResponse(OllamaMessage? Message);
-    private sealed record OllamaMessage(string? Content);
+    private sealed record CommentaryResponse(ChatMessage? Message, ChatChoice[]? Choices);
+    private sealed record ChatChoice(ChatMessage? Message);
+    private sealed record ChatMessage(string? Content);
 }
